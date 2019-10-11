@@ -13,6 +13,9 @@ using System.IO;
 using Exception = System.Exception;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace XamarinKeyboard1
 {
@@ -29,6 +32,7 @@ namespace XamarinKeyboard1
         static string subscriptionKey = "87e4754ee7274df3bfc170f76b779dc6";
         static string endpoint = "https://westus.api.cognitive.microsoft.com/";
         static string uriBase = endpoint + "vision/v2.1/ocr";
+        static string text = "";
 
         public override View OnCreateInputView()
 		{
@@ -135,9 +139,7 @@ namespace XamarinKeyboard1
 
                     //2nd approach
                     HttpClient client = new HttpClient();
-                    // Request headers.
-                    client.DefaultRequestHeaders.Add(
-                        "Ocp-Apim-Subscription-Key", subscriptionKey);
+                    client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
 
                     // Request parameters. 
                     // The language parameter doesn't specify a language, so the 
@@ -161,17 +163,20 @@ namespace XamarinKeyboard1
                         // This example uses the "application/octet-stream" content type.
                         // The other content types you can use are "application/json"
                         // and "multipart/form-data".
-                        content.Headers.ContentType =
-                            new MediaTypeHeaderValue("application/octet-stream");
+                        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
                         // Asynchronously call the REST API method.
                         response = await client.PostAsync(uri, content);
                     }
 
                     // Asynchronously get the JSON response.
-                    string contentString = await response.Content.ReadAsStringAsync();
+                    string contentString =  await response.Content.ReadAsStringAsync();
+                    JToken jToken = JToken.Parse(contentString);
+                    var allTexts = jToken["regions"].SelectMany(reg => reg["lines"]
+                    .SelectMany(line => line["words"]).Select(word => word["text"].ToString()).ToList()).ToList();
+                    string ocrText = allTexts.ToString();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine("Exception::" + ex);
                 }
@@ -189,7 +194,7 @@ namespace XamarinKeyboard1
             {
                 if (annotation.Description != null)
                 {
-                    string text = (annotation.Description);
+                     text = (annotation.Description);
                 }
             }
         }
